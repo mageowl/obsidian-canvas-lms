@@ -235,7 +235,7 @@ tags:
 				: "") +
 			course.extraTags.map((t) => "\n  - " + t).join("")
 		}
-due: ${assignment.due_at}
+due: ${assignment.due_at.replace(/Z$/, "")}
 assigned: ${assignment.created_at.split("T")[0]}
 url: ${assignment.html_url}${
 			course.extraFrontmatter.map(([k, v]) => `\n${k}: ${v}`)
