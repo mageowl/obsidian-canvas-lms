@@ -1,0 +1,10 @@
+{
+	"id": "canvas-lms",
+	"name": "Canvas LMS",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Creates notes from ",
+	"author": "mageowl",
+	"authorUrl": "https://mageowl.dev",
+	"isDesktopOnly": false
+}
