@@ -11,7 +11,7 @@ import {
 import {
 	CourseSettings,
 	parseCourseSettings,
-} from "./src/courseSettingsParser.ts";
+} from "./src/courseSettingsParser.js";
 
 // Remember to rename these classes and interfaces!
 
@@ -25,7 +25,7 @@ interface CanvasLMSSettings {
 
 function joinPaths(...paths: string[]): string {
 	return paths
-		.map((s) => s.replaceAll(/[/\\]/g, "_"))
+		.map((s) => s.replace(/[/\\]/g, "_"))
 		.reduce((a, b) => a.replace(/\/$/, "") + "/" + b.replace(/^\//, ""));
 }
 
@@ -243,7 +243,7 @@ url: ${assignment.html_url}${
 		if (assignment.description != null) {
 			text += "## Description\n";
 			text += htmlToMarkdown(
-				assignment.description.replaceAll("\n", "").replaceAll(
+				assignment.description.replace("\n", "").replace(
 					"h2",
 					"h3",
 				),
