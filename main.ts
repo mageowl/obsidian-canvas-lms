@@ -11,7 +11,7 @@ import {
 import {
 	CourseSettings,
 	parseCourseSettings,
-} from "./src/courseSettingsParser.js";
+} from "./src/courseSettingsParser.ts";
 
 // Remember to rename these classes and interfaces!
 
@@ -25,7 +25,7 @@ interface CanvasLMSSettings {
 
 function joinPaths(...paths: string[]): string {
 	return paths
-		.map((s) => s.replace(/[/\\]/g, "_"))
+		.filter((p) => p)
 		.reduce((a, b) => a.replace(/\/$/, "") + "/" + b.replace(/^\//, ""));
 }
 
@@ -199,7 +199,10 @@ export default class CanvasLMS extends Plugin {
 					);
 				}
 			} else {
-				const filePath = joinPaths(course.folder, assignment.name) +
+				const filePath = joinPaths(
+					course.folder,
+					assignment.name.replace(/[/\\]/g, "_"),
+				) +
 					".md";
 				this.knownAssignments[assignment.id] = {
 					name: assignment.name,
