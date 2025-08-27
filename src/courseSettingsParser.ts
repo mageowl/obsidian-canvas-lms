@@ -9,10 +9,8 @@ export function parseCourseSettings(rule: string): CourseSettings | null {
 	const dict: { [key: string]: string } = Object.fromEntries(
 		rule.split(";").map((kv) => kv.split("=").map((s) => s.trim())),
 	);
-	console.log(dict);
 
 	const id = parseInt(dict.id);
-	console.log(id);
 	if (isNaN(id)) return null;
 
 	return {
