@@ -189,15 +189,11 @@ export default class CanvasLMS extends Plugin {
 	) {
 		let text = `---
 tags:
-  - assignment ${
-			(assignment.has_submitted_submissions
-				? "\n  - assignment/done"
-				: "") +
-			course.extraTags.map((t) => "\n  - " + t).join("")
-		}
-${assignment.due_at ? assignment.due_at.replace(/Z$/, "") : ""}
+  - assignment ${course.extraTags.map((t) => "\n  - " + t).join("")}
+due_at: ${assignment.due_at ? assignment.due_at.replace(/Z$/, "") : ""}
 assigned: ${assignment.created_at.split("T")[0]}
-url: ${assignment.html_url}${
+url: ${assignment.html_url}
+done: ${assignment.has_submitted_submissions ?? false}${
 			course.extraFrontmatter.map(([k, v]) => `\n${k}: ${v}`).join("")
 		}
 ---
