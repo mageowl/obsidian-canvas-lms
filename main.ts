@@ -1,6 +1,7 @@
 import {
 	App,
 	htmlToMarkdown,
+	moment,
 	Notice,
 	Plugin,
 	PluginSettingTab,
@@ -190,7 +191,13 @@ export default class CanvasLMS extends Plugin {
 		let text = `---
 tags:
   - assignment ${course.extraTags.map((t) => "\n  - " + t).join("")}
-due_at: ${assignment.due_at ? assignment.due_at.replace(/Z$/, "") : ""}
+due: ${
+			assignment.due_at != null
+				? moment.utc(assignment.due_at).local().format(
+					"YYYY-MM-DD HH:mm:ss",
+				)
+				: ""
+		}
 assigned: ${assignment.created_at.split("T")[0]}
 url: ${assignment.html_url}
 done: ${assignment.has_submitted_submissions ?? false}${
