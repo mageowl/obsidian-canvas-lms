@@ -1,6 +1,7 @@
 import {
 	App,
 	htmlToMarkdown,
+	MarkdownView,
 	moment,
 	Notice,
 	Plugin,
@@ -12,7 +13,7 @@ import {
 import {
 	CourseSettings,
 	parseCourseSettings,
-} from "./src/courseSettingsParser.ts";
+} from "./src/courseSettingsParser.js";
 
 // Remember to rename these classes and interfaces!
 
@@ -92,6 +93,51 @@ export default class CanvasLMS extends Plugin {
 					);}
 			},
 		});
+		this.addCommand({
+			id: "reset-assignment",
+			name: "Reset Assignment",
+			checkCallback: (checking) => {
+				const markdownView = this.app.workspace.getActiveViewOfType(
+					MarkdownView,
+				);
+				if (!markdownView) return false;
+				const file = markdownView.file;
+				if (!file) return false;
+				const cache = this.app.metadataCache.getFileCache(file);
+				if (!cache) return false;
+				const urlRegex = new RegExp(
+					`https://${this.settings.canvasURL}/courses/(\\d+)/assignments/(\\d+)`,
+				);
+				const canvasUrl: string[] = cache.frontmatter?.url?.match(
+					urlRegex,
+				);
+				if (!canvasUrl) return false;
+
+				const [, courseIDStr, assignmentIDStr] = canvasUrl;
+				const courseID = parseInt(courseIDStr),
+					assignmentID = parseInt(assignmentIDStr);
+				const course = this.settings.courses.find(({ id }) =>
+					id === courseID
+				);
+				if (course == null) return false;
+
+				if (checking) return true;
+
+				(async () => {
+					const assignment = (await this.getAssignment(
+						courseID,
+						assignmentID,
+					)).json;
+					console.log(course);
+
+					const text = this.makeAssignment(
+						assignment,
+						course,
+					);
+					this.app.vault.modify(file, text);
+				})();
+			},
+		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new CanvasLMSSettingTab(this.app, this));
@@ -148,23 +194,34 @@ export default class CanvasLMS extends Plugin {
 
 				const file = this.app.vault.getFileByPath(knownData.filePath);
 				if (file == null) {
-					this.makeAssignment(knownData.filePath, assignment, course);
+					this.app.vault.create(
+						knownData.filePath,
+						this.makeAssignment(assignment, course),
+					);
 				} else {
 					this.app.fileManager.processFrontMatter(
 						file,
 						(frontmatter) => {
-							frontmatter.due = assignment.due_at;
+							if (assignment.due_at != null) {
+								frontmatter.due = moment.utc(assignment.due_at)
+									.local().format(
+										"YYYY-MM-DD HH:mm:ss",
+									);
+							}
 							frontmatter.assigned =
 								assignment.created_at.split("T")[0];
+							// frontmatter.done ||=
+							// 	assignment.has_submitted_submissions;
 						},
 					);
 				}
 			} else {
 				const filePath = joinPaths(
 					course.folder,
-					assignment.name.replace(/[/\\]/g, "_"),
+					assignment.name.replace(/[/\\:\[\]|#^*]/g, "_"),
 				) +
 					".md";
+				console.log(filePath);
 				this.knownAssignments[assignment.id] = {
 					name: assignment.name,
 					classID: course.id,
@@ -174,7 +231,10 @@ export default class CanvasLMS extends Plugin {
 
 				const file = this.app.vault.getFileByPath(filePath);
 				if (file == null) {
-					this.makeAssignment(filePath, assignment, course);
+					this.app.vault.create(
+						filePath,
+						this.makeAssignment(assignment, course),
+					);
 				}
 			}
 		}
@@ -184,7 +244,6 @@ export default class CanvasLMS extends Plugin {
 	}
 
 	makeAssignment(
-		filePath: string,
 		assignment: APIAssignment,
 		course: CourseSettings,
 	) {
@@ -200,7 +259,9 @@ due: ${
 		}
 assigned: ${assignment.created_at.split("T")[0]}
 url: ${assignment.html_url}
-done: ${assignment.has_submitted_submissions ?? false}${
+done: ${
+			// assignment.has_submitted_submissions ?? false}
+			false}${
 			course.extraFrontmatter.map(([k, v]) => `\n${k}: ${v}`).join("")
 		}
 ---
@@ -243,10 +304,7 @@ done: ${assignment.has_submitted_submissions ?? false}${
 			}
 		}
 
-		this.app.vault.create(
-			filePath,
-			text,
-		);
+		return text;
 	}
 
 	getAssignmentPage(course: number, idx: number): RequestUrlResponsePromise {
@@ -255,6 +313,17 @@ done: ${assignment.has_submitted_submissions ?? false}${
 				url: `https://${this.settings.canvasURL}/api/v1/courses/${course}/assignments?page=${
 					idx + 1
 				}&per_page=100`,
+				headers: {
+					Authorization: `Bearer ${this.settings.accessToken}`,
+				},
+			},
+		);
+	}
+
+	getAssignment(course: number, id: number): RequestUrlResponsePromise {
+		return requestUrl(
+			{
+				url: `https://${this.settings.canvasURL}/api/v1/courses/${course}/assignments/${id}`,
 				headers: {
 					Authorization: `Bearer ${this.settings.accessToken}`,
 				},
@@ -345,7 +414,10 @@ class CanvasLMSSettingTab extends PluginSettingTab {
 					)
 					.setValue(this.plugin.settings.coursesText)
 					.onChange(async (value) => {
-						const data = value.split("\n").map(parseCourseSettings);
+						const data = value
+							.split("\n")
+							.filter((line) => !line.startsWith("#"))
+							.map(parseCourseSettings);
 						if (!data.includes(null)) {
 							textArea.inputEl.setCustomValidity("");
 							this.plugin.settings.coursesText = value;
