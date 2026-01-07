@@ -15,7 +15,9 @@ import {
 	parseCourseSettings,
 } from "./src/courseSettingsParser.js";
 
-// Remember to rename these classes and interfaces!
+// Some characters are not allowed on windows and android.
+const replaceInvalidCharacters = (str: string) =>
+	str.replace(/[/\\:\[\]|#^*&]/g, "_").replace('"', "'");
 
 interface CanvasLMSSettings {
 	accessToken: string;
@@ -218,7 +220,7 @@ export default class CanvasLMS extends Plugin {
 			} else {
 				const filePath = joinPaths(
 					course.folder,
-					assignment.name.replace(/[/\\:\[\]|#^*]/g, "_"),
+					replaceInvalidCharacters(assignment.name),
 				) +
 					".md";
 				console.log(filePath);
