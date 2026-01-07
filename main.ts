@@ -17,7 +17,7 @@ import {
 
 // Some characters are not allowed on windows and android.
 const replaceInvalidCharacters = (str: string) =>
-	str.replace(/[/\\:\[\]|#^*&]/g, "_").replace('"', "'");
+	str.replace(/[/\\:\[\]|#^*&]/g, "_").replace(/"/g, "'");
 
 interface CanvasLMSSettings {
 	accessToken: string;
